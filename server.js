@@ -1,5 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const users = require('./routes/api/users');
+const profile = require('./routes/api/profile');
+const posts = require('./routes/api/posts');
+
 
 const app = express();
 //DB config
@@ -10,6 +14,11 @@ mongoose.connect(db)
     .catch(err => console.log(err));
 
 app.get('/', (req, res) => res.send('Hello'));
+
+//direct certain routes to specific files.
+app.use('/api/users', users); //the route will point to users.js
+app.use('/api/profile', profile);
+app.use('/api/posts', posts);
 
 const port = process.env.PORT || 5000;
 
