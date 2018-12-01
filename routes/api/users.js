@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const gravatar = require('gravatar');
 const bcript = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const keys = require('../../config/keys');
+const passport = require('passport');
 //load User model
 const User = require('../models/User')
 
@@ -43,4 +46,44 @@ router.post('/register', (req, res) => {
     });
 
 });
+
+
+//@route GET api/users/login
+//@desc login the user, returning the json web-token
+//@access Public
+router.post('/login', (req, res) => {
+    const email = req.body.email;
+    const password = req.body.password;
+    //check the user vd the db
+    User.findOne({ email })
+        .then(user => {
+            if (!user) {
+                return res.status(404).json({ email: 'User not found' });
+            }
+            //check string pw against the hased pw via bcript, string, access to pw in the db,isMatch is boolean
+            bcript.compare(password, user.password)
+                .then(isMatch => {
+                    if (isMatch) {
+                        //user matched
+                        //create a payload with the basic user info, creating the jwt payload
+                        const payload = { id: user.id, name: user.name, avatar: user.avatar }
+                        //sign the jwt, written in the docs,referencing in the key.js file
+                        jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+                            res.json({ success: true, token: 'Bearer' + token });
+                        });//token expires in one hour,user needs to relog
+
+                    } else {
+                        return res.status(404).json({ password: 'Password incorrect' });
+                    }
+                });
+        });
+});
+
+//@route GET api/users/current
+//@desc Tests returning the current user, whoever this current token belongs to
+//@access Private
+router.get('/current', passport.authenticate('jwt', { session: false }), (req, res) => {
+    res.json(req.user);
+});
+
 module.exports = router;
